@@ -174,7 +174,7 @@ const char* WIFI_PASSWORD = "YOUR_WIFI_PASSWORD";
 ```
 Also change this to match your LED strip length:
 ```cpp
-#define NUM_LEDS 30
+#define NUM_LEDS 21
 ```
 
 **Step 6 — Select board settings**
@@ -193,7 +193,7 @@ Click the Upload button. If it fails, hold the RESET button on the MB board as s
 
 After flashing open `Tools → Serial Monitor` and set baud rate to `115200`. You will see:
 ```
-✅ IP: 192.168.1.XX
+✅ IP: 192.168.1...
 🚀 LunaSense server started!
 ```
 Write this IP down — you need it for the app.
