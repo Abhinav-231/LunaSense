@@ -280,7 +280,7 @@ POST /settings                  → update timers (JSON body)
 
 ## Team
 
-**Mohd. Kasim** — Team lead. Handled overall project direction and built the main app UI — the dashboard, tab navigation and card layouts. Also wrote the blog article we published on Hashnode.
+**Mohd. Kazim** — Team lead. Handled overall project direction and built the main app UI — the dashboard, tab navigation and card layouts. Also wrote the blog article we published on Hashnode.
 
 **Abhinav Chauhan** — Built the app features — the color wheel picker, AC card controls, live temperature display, timer settings, and the API layer that connects the app to the ESP32.
 
