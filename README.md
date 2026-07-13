@@ -19,9 +19,9 @@ So we built something that solves both.
 
 **Demo Video** — [Watch on YouTube](YOUR_YOUTUBE_LINK_HERE)
 
-**Blog Article** — [Building LunaSense on Hashnode](YOUR_HASHNODE_LINK_HERE)
+**Blog Article** — [Building LunaSense on Hashnode](https://lunasense.hashnode.dev/building-lunasense?utm_source=hashnode&utm_medium=feed)
 
-**Live Demo** — [LunaSense Interactive Demo](https://abhinav-231.github.io/LunaSense/docs/demo.html)
+**Live Demo** — [LunaSense Interactive Demo](https://abhinav-231.github.io/LunaSense/docs/lunasense.html)
 
 **GitHub** — [github.com/Abhinav-231/LunaSense](https://github.com/Abhinav-231/LunaSense)
 
