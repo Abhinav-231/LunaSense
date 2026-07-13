@@ -128,8 +128,8 @@ LunaSense/
 │       └── 3_combined_app.ino     ← Full system (use this for demo)
 ├── docs/
 │lunasense.html           ← Interactive system demo
-│circuit_diagram.png      ← Hardware wiring diagram
-│system_flowchart.png     ← Sensor fusion flowchart
+│circuit_diagram.jpeg      ← Hardware wiring diagram
+│system_flowchart.jpeg     ← Sensor fusion flowchart
 ├── assets/
 ├── api.ts                       ← All ESP32 HTTP calls
 ├── app.json                     ← Expo configuration
