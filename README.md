@@ -15,6 +15,18 @@ So we built something that solves both.
 
 ---
 
+## Project Links
+
+**Demo Video** — [Watch on YouTube](YOUR_YOUTUBE_LINK_HERE)
+
+**Blog Article** — [Building LunaSense on Hashnode](YOUR_HASHNODE_LINK_HERE)
+
+**Live Demo** — [LunaSense Interactive Demo](https://abhinav-231.github.io/LunaSense/docs/demo.html)
+
+**GitHub** — [github.com/Abhinav-231/LunaSense](https://github.com/Abhinav-231/LunaSense)
+
+---
+
 ## How It Works
 
 LunaSense uses two sensors together instead of one:
@@ -26,7 +38,7 @@ The idea is simple. The motion sensor is fast but dumb — it misses still peopl
 
 The **ESP32-CAM microcontroller** sits in the middle, reading both sensors and making decisions. It runs a small web server over WiFi so our React Native app can send commands and get live data back.
 
-For lights we use a **WS2812B LED strip** which gives full RGB color control from the app. For AC we use an **IR LED** that blasts the same infrared signals your AC remote sends — no wiring into the unit, no voiding warranty.
+For lights we use a **WS2812B LED strip** which gives full RGB color control from the app. For AC we use an **IR LED module** that blasts the same infrared signals your AC remote sends — no wiring into the unit, no voiding warranty.
 
 We also added a **DHT22 temperature sensor** so the system knows the actual room temperature, not just what the AC dial is set to. This lets us do proper closed-loop control — if the room is still warm, keep cooling. If it overshot, ease up.
 
@@ -35,26 +47,29 @@ We also added a **DHT22 temperature sensor** so the system knows the actual room
 ## Features
 
 **Lights**
-- Turns on when someone enters, stays on even when they're sitting still
-- Full color control from the app — 16 million colors via a color wheel
-- Brightness adjusts automatically based on how far you are from the sensor
-- Turns off after a set period of no movement — configurable from the app
-- Anomaly alerts — unexpected presence at unusual hours sends a push notification
+- Turns on automatically when PIR detects someone entering
+- Stays on even when person is sitting still — mmWave radar detects breathing
+- Brightness adjusts automatically based on distance from sensor
+- Full RGB color control from the app via a circular color wheel — 16 million colors
+- Turns off after configurable period of no movement
+- Anomaly detection — unexpected energy spike triggers visual alert and app notification
 
 **AC**
 - Turn on/off, set temperature, change mode and fan speed from the app
 - Reads actual room temperature every 5 seconds via DHT22
-- Automatically adjusts the AC to reach your target temperature
-- Detects when activity in the room increases and drops temperature by 1°C to compensate for extra body heat
-- Turns off automatically after the room has been empty for a set duration
-- Does not cut power directly — sends proper IR signals so the AC shuts down gracefully
+- Automatically steps AC temperature up or down to reach your target room temp
+- Detects when activity increases and drops temperature by 1°C for extra body heat
+- Turns off automatically after room confirmed empty by radar
+- Graceful shutdown via IR — no hard power cuts that damage the compressor
 
 **App**
-- Built in React Native with Expo, works on Android and iOS
-- Live room temperature, humidity and presence shown at the top
-- Color wheel picker for the LED strip
-- Separate configurable timers for lights and AC
-- Works entirely on local WiFi — no internet required, no cloud, no data leaving your home
+- Built with React Native and Expo — works on Android and iOS via Expo Go
+- Live room temperature, humidity and presence shown at the top of the dashboard
+- Circular HSV color wheel picker for the LED strip
+- Configurable auto-off timers for both lights and AC
+- Savings tab with live activity log showing the last 3 system events
+- Full log modal showing complete system history
+- Works entirely on local WiFi — no internet, no cloud, no data leaving your home
 
 ---
 
@@ -62,32 +77,29 @@ We also added a **DHT22 temperature sensor** so the system knows the actual room
 
 | Layer | Technology |
 |---|---|
-| Mobile App | React Native (Expo) |
-| Firmware | Arduino C++ on ESP32-CAM |
-| Communication | HTTP over local WiFi |
+| Mobile App | React Native with Expo (expo-router) |
+| Firmware | Arduino C++ on ESP32-CAM MB Board |
+| Communication | HTTP over local WiFi (WebServer.h) |
 | LED Control | FastLED library |
-| AC Control | IR NEC protocol |
-| Temp/Humidity | DHT22 sensor |
-| Presence | mmWave radar + PIR fusion |
+| AC Control | IRremoteESP8266 — NEC protocol |
+| Temp + Humidity | DHT22 sensor |
+| Presence | HLK-LD2410 mmWave radar + PIR fusion |
+| Data Storage | AsyncStorage for room and timer config |
 
 ---
 
-## How the AC Smart Cooling Works
+## How the Smart Cooling Works
 
-This is the part we're most proud of from a software perspective.
+Most smart AC systems just turn the unit on or off. We built a proper control loop:
 
-Most smart AC systems just turn the unit on or off. We built an actual control loop:
-
-1. User sets a **target room temperature** in the app (say 24°C)
-2. DHT22 reads the **actual room temperature** every 5 seconds
+1. User sets a **target room temperature** in the app (e.g. 24°C)
+2. DHT22 reads **actual room temperature** every 5 seconds
 3. Every 60 seconds the ESP32 compares them:
-   - Room more than 1.5°C above target → send IR temperature down signal
-   - Room more than 0.5°C below target → send IR temperature up signal
-   - Room within range → hold, do nothing
+   - Room more than 1.5°C above target → IR signal TEMP DOWN
+   - Room more than 0.5°C below target → IR signal TEMP UP
+   - Room within range → hold, no signal sent
 4. Every 30 seconds the radar energy level is checked — if activity spikes significantly the target automatically drops 1°C to account for extra body heat
-5. When the radar confirms the room is empty, a countdown starts. If nobody returns within the set time, the AC turns off via IR
-
-The system sends IR pulses one step at a time with a gap between each — the same way you'd press the temperature button on your remote repeatedly. This is important because IR has no feedback — you can't ask the AC what temperature it's at, you can only command it.
+5. When radar confirms the room is empty a countdown starts — AC turns off via IR after the set time
 
 ---
 
@@ -95,29 +107,33 @@ The system sends IR pulses one step at a time with a gap between each — the sa
 
 ```
 LunaSense/
-├── firmware/
-│   ├── lunasense_light_serial/     ← light module testing via serial
-│   ├── lunasense_ac_serial/        ← AC module testing via serial
-│   └── lunasense_combined/         ← full production firmware
 ├── src/
 │   ├── app/
-│   │   ├── _layout.tsx
-│   │   └── index.tsx
-│   ├── components/
-│   │   ├── ClimateCard.tsx
-│   │   ├── RoomCard.tsx
-│   │   ├── SavingsCard.tsx
-│   │   ├── GeneralTab.tsx
-│   │   ├── StateHistory.tsx
-│   │   ├── ColorPicker.tsx
-│   │   ├── StatsChart.tsx
-│   │   ├── LunaContext.tsx
-│   │   └── PresenceIndicator.js
-│   └── api.ts
+│   │   ├── _layout.tsx          ← Expo Router root layout
+│   │   └── index.tsx            ← Main dashboard screen
+│   └── components/
+│       ├── ClimateCard.tsx      ← AC card with ON/OFF, temp, mode, speed
+│       ├── RoomCard.tsx         ← Light card with HSV color wheel
+│       ├── SavingsCard.tsx      ← Energy savings + live activity log
+│       ├── GeneralTab.tsx       ← Timer settings
+│       ├── ColorPicker.tsx      ← Color picker component
+│       ├── LunaContext.tsx      ← Global ESP32 IP state
+|       ├──PresenceIndicator.tsx ← Detects and indicates presence
+├── firmware/
+│   ├── 1_light_only/
+│   │   └── 1_light_only_app.ino   ← Light control only
+│   ├── 2_ac_only/
+│   │   └── 2_ac_only_app.ino      ← AC control only
+│   └── 3_combined/
+│       └── 3_combined_app.ino     ← Full system (use this for demo)
 ├── docs/
-│   ├── circuit_diagram.png
-│   ├── system_flowchart.png
-│   └── demo.html
+│lunasense.html           ← Interactive system demo
+│circuit_diagram.png      ← Hardware wiring diagram
+│system_flowchart.png     ← Sensor fusion flowchart
+├── assets/
+├── api.ts                       ← All ESP32 HTTP calls
+├── app.json                     ← Expo configuration
+├── package.json
 └── README.md
 ```
 
@@ -125,95 +141,55 @@ LunaSense/
 
 ## Setting Up
 
-### What You Need
-- Arduino IDE (for ESP32 firmware)
-- Node.js installed on your computer
-- Expo Go app on your phone (download from Play Store or App Store)
-- ESP32-CAM with MB board
-- All components wired as per the wiring guide below
+### Flash the ESP32
 
----
+**1. Install Arduino IDE** from `arduino.cc/en/software`
 
-### Part 1 — Flash the ESP32
-
-**Step 1 — Install Arduino IDE**
-
-Download from `arduino.cc/en/software` and install it.
-
-**Step 2 — Add ESP32 board support**
-
-Open Arduino IDE → `File → Preferences` → paste this in "Additional Board Manager URLs":
+**2. Add ESP32 board support** — go to `File → Preferences` and paste in Additional Board Manager URLs:
 ```
 https://raw.githubusercontent.com/espressif/arduino-esp32/gh-pages/package_esp32_index.json
 ```
-Then go to `Tools → Board → Board Manager` → search **esp32** → install **esp32 by Espressif Systems**
+Then `Tools → Board Manager` → search esp32 → install **esp32 by Espressif Systems**
 
-**Step 3 — Install libraries**
+**3. Install libraries** via `Sketch → Include Library → Manage Libraries`:
+- FastLED by Daniel Garcia
+- IRremoteESP8266 by crankyoldgit
+- ArduinoJson by Benoit Blanchon (version 6)
+- DHT sensor library by Adafruit
+- Adafruit Unified Sensor by Adafruit
 
-Go to `Sketch → Include Library → Manage Libraries` and install each one:
-- `FastLED` by Daniel Garcia
-- `IRremoteESP8266` by crankyoldgit
-- `ArduinoJson` by Benoit Blanchon — install version 6
-- `DHT sensor library` by Adafruit
-- `Adafruit Unified Sensor` by Adafruit
+**4. Open firmware** — go to `firmware/3_combined/` and open `3_combined_app.ino`
 
-**Step 4 — Open the firmware**
-
-- Download this repository using the green **Code** button → **Download ZIP** → extract it
-- Open the `firmware` folder
-- For light testing: open `lunasense_light_serial` folder → open `lunasense_light_serial.ino`
-- For AC testing: open `lunasense_ac_serial` folder → open `lunasense_ac_serial.ino`
-- For full system: open `lunasense_combined` folder → open `lunasense_esp32_final.ino`
-
-**Step 5 — Edit your credentials**
-
-At the top of the `.ino` file change these two lines:
+**5. Edit credentials** at the top of the file:
 ```cpp
 const char* WIFI_SSID     = "YOUR_WIFI_NAME";
 const char* WIFI_PASSWORD = "YOUR_WIFI_PASSWORD";
-```
-Also change this to match your LED strip length:
-```cpp
-#define NUM_LEDS 21
+#define NUM_LEDS 30   // change to your strip length
 ```
 
-**Step 6 — Select board settings**
+**6. Board settings:**
+- Board: `AI Thinker ESP32-CAM`
+- Partition Scheme: `Huge APP (3MB No OTA)`
+- Upload Speed: `115200`
+- Port: select your COM port
 
-In Arduino IDE:
-- `Tools → Board → ESP32 Arduino → AI Thinker ESP32-CAM`
-- `Tools → Partition Scheme → Huge APP (3MB No OTA)`
-- `Tools → Upload Speed → 115200`
-- `Tools → Port → select your COM port`
+**7. Upload** — click Upload, when you see `Connecting......` hold the BOOT button on the MB board for 2 seconds then release
 
-**Step 7 — Flash**
-
-Click the Upload button. If it fails, hold the RESET button on the MB board as soon as you see "Connecting..." in the console.
-
-**Step 8 — Find your IP address**
-
-After flashing open `Tools → Serial Monitor` and set baud rate to `115200`. You will see:
+**8. Find IP** — open Serial Monitor at 115200 baud:
 ```
-✅ IP: 192.168.1...
-🚀 LunaSense server started!
+✅ IP: 192.168.1.XX
+🚀 LunaSense FULL SYSTEM ready!
 ```
-Write this IP down — you need it for the app.
 
----
+### Run the App
 
-### Part 2 — Run the Mobile App
+**1. Clone the repo**
+```bash
+git clone https://github.com/Abhinav-231/LunaSense.git
+cd LunaSense
+```
 
-**Step 1 — Download the repo**
-
-Click the green **Code** button on this page → **Download ZIP** → extract it.
-
-**Step 2 — Open terminal in the project folder**
-
-- Open the extracted folder
-- Click the address bar in File Explorer → type `cmd` → press Enter
-
-**Step 3 — Install dependencies**
-
-Run these commands one by one:
+**2. Install dependencies**
 ```bash
 npm install
 npx expo install react-native-svg
@@ -221,78 +197,98 @@ npx expo install @react-native-async-storage/async-storage
 npx expo install react-native-safe-area-context
 ```
 
-**Step 4 — Start the app**
-
+**3. Start**
 ```bash
 npx expo start
 ```
-A QR code will appear in the terminal.
 
-**Step 5 — Open on your phone**
+**4. Open on phone** — install Expo Go from Play Store or App Store, make sure phone is on same WiFi as ESP32, scan the QR code
 
-- Install **Expo Go** from Play Store or App Store
-- Make sure your phone is on the **same WiFi network** as your ESP32
-- Android: open Expo Go → scan the QR code
-- iOS: scan with your camera app
-
-**Step 6 — Connect to ESP32**
-
-- Open the app → go to **General tab**
-- Type your ESP32 IP address from Step 8 above
-- Tap **Save Settings**
-- Go to AC tab → add a room → tap ON
+**5. Connect to ESP32** — go to General tab in the app, enter the IP address from Serial Monitor, tap Save Settings
 
 ---
 
-## Wiring (Quick Reference)
+## Wiring
 
 ```
-LED Strip data  → GPIO 12  (+ 100Ω resistor)
-Motion sensor   → GPIO 13
-Radar TX        → GPIO 15
-Radar RX        → GPIO 14
-IR LED          → GPIO 2   (+ 100Ω resistor, point at AC unit)
-Temp sensor     → GPIO 3   (+ 1kΩ pullup to 3.3V)
+WS2812B  DIN  → GPIO 12  (+ 100Ω resistor)
+WS2812B  5V   → Separate 5V power supply
+WS2812B  GND  → Common GND
+
+PIR      OUT  → GPIO 13
+PIR      VCC  → 5V
+PIR      GND  → GND
+
+LD2410   TX   → GPIO 15  (ESP32 RX2)
+LD2410   RX   → GPIO 14  (ESP32 TX2)
+LD2410   VCC  → 3.3V
+LD2410   GND  → GND
+
+IR Module  S  → GPIO 2
+IR Module  +  → 3.3V
+IR Module  -  → GND
+
+DHT22    OUT  → GPIO 4   (+ 1kΩ resistor to 3.3V)
+DHT22    VCC  → 3.3V
+DHT22    GND  → GND
 ```
 
 ---
 
-## API
+## API Endpoints
 
-The ESP32 runs a simple HTTP server. The app talks to it over local WiFi.
+The ESP32 runs a local HTTP server on your WiFi network.
 
 ```
-GET  /status                    → room temp, humidity, presence, AC state
-POST /light/on                  → lights on
-POST /light/off                 → lights off
-POST /light/brightness?value=80 → brightness 0-100%
-POST /light/color?hex=A0C4FF    → RGB color
-POST /ac/on                     → AC on via IR
-POST /ac/off                    → AC off via IR
-POST /ac/temp?value=22          → set AC dial temperature
-POST /ac/target?value=24        → set target room temperature
-POST /ac/mode?value=Cool        → Cool / Heat / Fan
-POST /ac/speed?value=Med        → Low / Med / High
-POST /settings                  → update timers (JSON body)
+GET  /status                     → room temp, humidity, presence, AC and light state
+POST /light/on                   → lights on
+POST /light/off                  → lights off
+POST /light/brightness?value=80  → brightness 0–100%
+POST /light/color?hex=A0C4FF     → RGB color from hex
+POST /light/anomaly?enabled=1    → enable anomaly detection
+POST /ac/on                      → AC on via IR
+POST /ac/off                     → AC off via IR
+POST /ac/temp?value=22           → set AC dial temperature 16–32°C
+POST /ac/target?value=24         → set target room temperature
+POST /ac/mode?value=Cool         → Cool / Heat / Fan
+POST /ac/speed?value=Med         → Low / Med / High
+POST /settings                   → update timers (JSON body)
 ```
+
+---
+
+## How We Used Expo
+
+We used Expo with the managed workflow throughout the project:
+
+- **expo-router** for file-based routing — `_layout.tsx` defines the Stack navigator and `index.tsx` is the main screen, navigation happens automatically based on file structure
+- **react-native-svg** installed via `npx expo install` for the custom circular HSV color wheel in RoomCard — built using SVG Circle, Path and RadialGradient primitives
+- **AsyncStorage** via `@react-native-async-storage/async-storage` to persist the ESP32 IP address, room names and timer settings locally on the phone
+- **fetch API** in Expo's JS runtime to send HTTP POST requests to the ESP32 and poll `/status` every 5 seconds for live sensor data
+- **Animated API** from React Native for the fade-in animations in the live activity log in SavingsCard
+- **Expo Go** on Android for instant hot reload testing throughout development — never needed to touch Android Studio
+- **app.json** for managed config — adaptive icons, splash screen via expo-splash-screen plugin, and scheme setup
 
 ---
 
 ## Team
 
-**Mohd. Kazim** — Team lead. Handled overall project direction and built the main app UI — the dashboard, tab navigation and card layouts. Also wrote the blog article we published on Hashnode.
+**Mohd. Kazim** — Team lead. Handled overall project direction and built the main app UI — the dashboard, tab navigation and card layouts. Also wrote the blog article published on Hashnode.
+[LinkedIn](https://www.linkedin.com/in/mohd-kazim-202bb5337)
 
-**Abhinav Chauhan** — Built the app features — the color wheel picker, AC card controls, live temperature display, timer settings, and the API layer that connects the app to the ESP32.
+**Abhinav Chauhan** — Built the app features — the color wheel picker, AC card controls, live temperature display, timer settings, savings tab with live activity log, and the API layer connecting the app to the ESP32.
+[LinkedIn](https://www.linkedin.com/in/abhinav-chauhan-8800743b1)
 
-**Meghna Garai** — Wrote the ESP32 firmware. Implemented the sensor fusion logic, the smart cooling algorithm, the IR control system and the WiFi server that the app talks to.
+**Meghna Garai** — Wrote the ESP32 firmware. Implemented the dual-sensor fusion logic, smart cooling algorithm, IR control system and the WiFi HTTP server.
+[LinkedIn](https://www.linkedin.com/in/meghna-garai-44b077380)
 
-**Visha Gangwar** — Handled all the hardware. Wired up every component, figured out the power setup for the LED strip, got the IR LED positioned correctly for the AC, and built the physical prototype.
-
+**Visha Gangwar** — Handled all the hardware. Wired every component, set up the separate power supply for the LED strip, positioned the IR module for the AC, and built the physical prototype.
+[LinkedIn](https://www.linkedin.com/in/visha-gangwar-026721421)
 ---
 
 ## What We'd Do Next
 
-The current prototype controls one room with one ESP32. The natural next step is one ESP32 per room — the app already supports multiple IP addresses conceptually. We'd also want to use the ESP32-CAM's onboard camera for actual person counting rather than just presence detection, and add real electricity usage tracking with cost calculations in rupees.
+The current prototype controls one room with one ESP32. The next step is one ESP32 per room with the app managing multiple IPs. We'd also use the ESP32-CAM's onboard camera for actual person counting rather than just presence detection, add voice control using Sarvam AI for Hindi and English commands, and build real electricity cost tracking in rupees.
 
 ---
 
