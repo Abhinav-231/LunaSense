@@ -17,7 +17,7 @@ So we built something that solves both.
 
 ## Project Links
 
-**Demo Video** — [Watch on YouTube](YOUR_YOUTUBE_LINK_HERE)
+**Demo Video** — [Watch on YouTube](https://youtu.be/-ABGXlCuFPE)
 
 **Blog Article** — [Building LunaSense on Hashnode](https://lunasense.hashnode.dev/building-lunasense?utm_source=hashnode&utm_medium=feed)
 
